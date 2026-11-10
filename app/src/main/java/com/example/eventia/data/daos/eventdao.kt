@@ -4,29 +4,37 @@ import androidx.room3.Dao
 import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
-import com.example.eventia.data.entities.evententity
+import com.example.eventia.data.entities.EventEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EventDao {
 
-    // Obtener catálogo desde caché (RF-14)
-    @Query("SELECT * FROM events WHERE isCached = 1")
-    fun getCachedEvents(): Flow<List<evententity>>
+    // Caché del catálogo (RF-14)
+    @Query("SELECT * FROM events WHERE isCached = 1 ORDER BY startsAt ASC")
+    fun getCachedEvents(): Flow<List<EventEntity>>
 
-    // Obtener solo favoritos (RF-04)
-    @Query("SELECT * FROM events WHERE isFavorite = 1")
-    fun getFavoriteEvents(): Flow<List<evententity>>
+    // Favoritos (RF-04)
+    @Query("SELECT * FROM events WHERE isFavorite = 1 ORDER BY startsAt ASC")
+    fun getFavoriteEvents(): Flow<List<EventEntity>>
 
-    // Guardar lista devuelta por la API REST
+    // Detalle por id, para favoritos sin conexión (RF-05)
+    @Query("SELECT * FROM events WHERE id = :eventId")
+    fun getEventById(eventId: Int): Flow<EventEntity?>
+
+    // Guardar el catálogo descargado (RF-14)
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertEvents(events: List<evententity>)
+    suspend fun insertEvents(events: List<EventEntity>)
 
-    // Marcar/Desmarcar como favorito (RF-04)
+    // Marcar o desmarcar favorito; no requiere conexión (RF-04, RF-05)
     @Query("UPDATE events SET isFavorite = :isFavorite WHERE id = :eventId")
     suspend fun updateFavoriteStatus(eventId: Int, isFavorite: Boolean)
 
-    // Limpiar caché antigua al actualizar desde red
-    @Query("DELETE FROM events WHERE isFavorite = 0")
-    suspend fun clearCachedCatalog()
+    // Invalidar la caché anterior conservando favoritos (RF-14)
+    @Query("UPDATE events SET isCached = 0 WHERE isFavorite = 0")
+    suspend fun invalidateCachedCatalog()
+
+    // Borrar definitivamente lo que ya no es favorito ni caché
+    @Query("DELETE FROM events WHERE isFavorite = 0 AND isCached = 0")
+    suspend fun deleteStaleEvents()
 }

@@ -38,6 +38,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+    }
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -47,7 +53,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.room3.common)
+    implementation(libs.androidx.room3.runtime)
     testImplementation(libs.junit)
 
     // Inyección de Dependencias (Hilt)
@@ -61,31 +67,26 @@ dependencies {
     // Retrofit & Gson para consumir la API REST
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    // Google Maps Compose
+    // Google Maps Compose (RF-07 a RF-09) — versión única
     implementation("com.google.maps.android:maps-compose:6.1.0")
-    // Carga de Imágenes (Coil) ---
-    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.google.android.gms:play-services-maps:19.2.0")
 
     // Servicios de ubicación
-    implementation("com.google.android.gms:play-services-maps:19.2.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
-    // Room para la base de datos local
-    val room_version = "2.6.1"
-    implementation("androidx.room:room-runtime:$room_version")
-    implementation("androidx.room:room-ktx:$room_version")
-    ksp("androidx.room:room-compiler:$room_version")
+    // Iconos Material extendidos
+    implementation("androidx.compose.material:material-icons-extended")
 
-    // DataStore para guardar el token de forma segura
+    // Carga de imágenes con estados de carga y error
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // DataStore para la sesión y preferencias
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
-    // Corrutinas y Lifecycle
+    // Corrutinas y Lifecycle (ViewModel + collectAsStateWithLifecycle)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
 
-    // Google Maps Compose (Módulo E - Requisito de mapas y marcadores)
-    implementation("com.google.maps.android:maps-compose:4.3.3")
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
     // Red (OkHttp)
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
