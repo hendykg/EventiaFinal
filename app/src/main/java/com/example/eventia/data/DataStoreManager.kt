@@ -33,6 +33,16 @@ class DataStoreManager(private val context: Context) {
         preferencias[CLAVE_TOKEN]
     }
 
+    // Leer el nombre del usuario guardado
+    val nombreGuardado: Flow<String?> = context.dataStore.data.map { preferencias ->
+        preferencias[CLAVE_NOMBRE]
+    }
+
+    // Leer el correo del usuario guardado
+    val correoGuardado: Flow<String?> = context.dataStore.data.map { preferencias ->
+        preferencias[CLAVE_CORREO]
+    }
+
     // Cerrar sesión (borra todos los datos almacenados)
     suspend fun borrarSesion() {
         context.dataStore.edit { preferencias ->

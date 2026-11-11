@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -18,6 +20,15 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+
+        // Inyección de la clave de Google Maps desde local.properties:
+        // la clave nunca se escribe en el código ni se sube a Git.
+        val mapsApiKey = runCatching {
+            Properties().apply {
+                rootProject.file("local.properties").inputStream().use { load(it) }
+            }.getProperty("MAPS_API_KEY") ?: ""
+        }.getOrDefault("")
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

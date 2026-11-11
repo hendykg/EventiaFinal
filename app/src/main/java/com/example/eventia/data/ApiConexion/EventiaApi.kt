@@ -13,7 +13,7 @@ interface EventiaApi {
     suspend fun login(@Body request: LoginRequest): AuthResponse
 
     @GET("me")
-    suspend fun getProfile(@Header("Authorization") token: String): UserResponse
+    suspend fun getProfile(): UserResponse
 
     // CATEGORÍAS Y CATÁLOGO DE EVENTOS
     @GET("categories")
@@ -26,10 +26,7 @@ interface EventiaApi {
     ): List<EventResponse>
 
     @GET("events/{id}")
-    suspend fun getEventDetail(
-        @Path("id") id: Int,
-        @Header("Authorization") token: String? = null
-    ): EventResponse
+    suspend fun getEventDetail(@Path("id") id: Int): EventResponse
 
     // LUGARES
     @GET("venues")
@@ -42,22 +39,20 @@ interface EventiaApi {
     suspend fun getVenueEvents(@Path("id") id: Int): List<EventResponse>
 
     // INSCRIPCIONES / ASISTENCIA
+    // El encabezado Authorization: Bearer lo agrega AuthInterceptor de forma centralizada.
     @POST("events/{id}/attendance")
-    suspend fun attendEvent(
-        @Path("id") id: Int,
-        @Header("Authorization") token: String
-    ): Response<Unit>
+    suspend fun attendEvent(@Path("id") id: Int): Response<Unit>
 
     @DELETE("events/{id}/attendance")
-    suspend fun cancelAttendance(
-        @Path("id") id: Int,
-        @Header("Authorization") token: String
-    ): Response<Unit>
+    suspend fun cancelAttendance(@Path("id") id: Int): Response<Unit>
 
     @GET("me/attendances")
-    suspend fun getMyAttendances(
-        @Header("Authorization") token: String
-    ): List<EventResponse>
+    suspend fun getMyAttendances(): List<EventResponse>
+
+    companion object {
+        // TODO: reemplazar por la URL oficial que indique la plataforma de la asignatura
+        const val BASE_URL = "https://tu-backend-eventia.com/"
+    }
 }
 
 
@@ -116,5 +111,5 @@ data class EventResponse(
     val venue: VenueResponse,
     val capacity: Int,
     val availableSpots: Int,
-    val isAttending: Boolean? = null // Incluido si se envía token en detalle (RF-12)
+    val isAttending: Boolean? = null // Incluido si hay sesión en el detalle (RF-12)
 )

@@ -37,4 +37,8 @@ interface EventDao {
     // Borrar definitivamente lo que ya no es favorito ni caché
     @Query("DELETE FROM events WHERE isFavorite = 0 AND isCached = 0")
     suspend fun deleteStaleEvents()
+
+    // Marca de tiempo de la última caché del catálogo (RF-14)
+    @Query("SELECT MAX(cachedAt) FROM events WHERE isCached = 1")
+    fun getCachedTimestamp(): Flow<Long?>
 }
