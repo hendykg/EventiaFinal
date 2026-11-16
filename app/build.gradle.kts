@@ -21,14 +21,21 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // Inyección de la clave de Google Maps desde local.properties:
-        // la clave nunca se escribe en el código ni se sube a Git.
-        val mapsApiKey = runCatching {
-            Properties().apply {
-                rootProject.file("local.properties").inputStream().use { load(it) }
-            }.getProperty("MAPS_API_KEY") ?: ""
-        }.getOrDefault("")
-        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        // Inyección de configuración local desde local.properties:
+        // las claves y URLs nunca se escriben en el código ni se suben a Git.
+        val localProperties = Properties().apply {
+            val archivo = rootProject.file("local.properties")
+            if (archivo.exists()) {
+                archivo.inputStream().use { load(it) }
+            }
+        }
+        manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY") ?: ""
+
+        // Emulador: http://10.0.2.2:8000/api/ · Celular USB: http://localhost:8000/api/
+        val apiBaseUrl = localProperties.getProperty("API_BASE_URL")
+            ?.takeIf { it.isNotBlank() }
+            ?: "http://10.0.2.2:8000/api/"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -46,6 +53,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -65,6 +73,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.room3.runtime)
+    ksp(libs.androidx.room3.compiler)
     testImplementation(libs.junit)
 
     // Inyección de Dependencias (Hilt)

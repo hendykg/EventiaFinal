@@ -15,8 +15,11 @@ sealed class AppError(message: String) : Exception(message) {
     /** HTTP 404: recurso inexistente. */
     data object NotFound : AppError("Este evento ya no está disponible.")
 
-    /** Sin conexión o timeout. */
-    data object Network : AppError("Sin conexión. Revisa tu acceso a Internet.")
+    /** HTTP 422: datos inválidos (los campos se validan en el formulario). */
+    data object Validation : AppError("Revisa los datos ingresados.")
+
+    /** No se pudo conectar con el servidor o la respuesta tardó demasiado. */
+    data object Network : AppError("No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.")
 
     /** HTTP 5xx. */
     data class Server(val code: Int) : AppError("Error del servidor ($code). Intenta más tarde.")

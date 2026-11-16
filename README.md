@@ -15,9 +15,10 @@ app/src/main/java/com/example/eventia/
 │   └── repository/                      (interfaces: SessionRepository, EventRepository)
 ├── data/
 │   ├── ApiConexion/
-│   │   ├── EventiaApi.kt               (endpoints y DTO; BASE_URL en companion)
+│   │   ├── EventiaApi.kt               (endpoints y DTO)
+│   │   ├── RetrofitRepository.kt       (única instancia de Retrofit; BASE_URL desde local.properties)
 │   │   ├── AuthInterceptor.kt          (token Bearer centralizado)
-│   │   └── ApiErrorMapper.kt           (clasificación 401/404/409/5xx/red)
+│   │   └── ApiErrorMapper.kt           (clasificación 401/404/409/422/5xx/red)
 │   ├── mappers/                        (DTO ↔ dominio ↔ entidad Room)
 │   ├── repository/                     (SessionRepositoryImpl, EventRepositoryImpl)
 │   ├── daos/                           (EventDao, VenueDao)
@@ -35,12 +36,12 @@ También existen recursos Android en `app/src/main/res`, el manifiesto en `app/s
 
 ### Responsabilidad del código existente
 
-- **`MainActivity.kt`** inicia Compose, aplica `EventiaTheme` y muestra un `Scaffold` con el composable de ejemplo `Greeting`. Todavía no configura navegación ni pantallas de eventos o autenticación.
+- **`MainActivity.kt`** inicia Compose, aplica `EventiaTheme` y muestra el mapa de eventos con su ViewModel de Hilt.
 - **`data/ApiConexion/EventiaApi.kt`** declara las operaciones Retrofit para registro, inicio de sesión, perfil, categorías, eventos, lugares y asistencias. En el mismo archivo están sus modelos de solicitud/respuesta (DTO).
-- **`data/ApiConexion/retrofitEventia.kt`** crea el cliente Retrofit y OkHttp. La URL base todavía es `https://tu-backend-eventia.com/`, por lo que debe cambiarse por la URL real antes de conectar el backend.
+- **`data/ApiConexion/RetrofitRepository.kt`** es la única fuente de `Retrofit` (patrón del curso, `by lazy`). La URL base se configura en `local.properties` (`API_BASE_URL`); `NetworkModule` le instala el `OkHttpClient` de Hilt con el token.
 - **`data/DataStoreManager.kt`** ofrece funciones para guardar el token y datos del usuario, observar el token y borrar las preferencias de sesión.
-- **`data/daos/eventdao.kt`** declara consultas Room para catálogo, favoritos e inserción de eventos.
-- **`data/entities/`** contiene clases de datos relacionadas con eventos, categorías y lugares.
+- **`data/daos/EventDao.kt`** declara consultas Room para catálogo, favoritos e inserción de eventos.
+- **`data/entities/`** contiene `EventEntity` y `VenueEntity` (caché y favoritos).
 - **`ui/theme/`** contiene la configuración visual de Compose.
 
 ## Flujo implementado hoy
@@ -75,7 +76,35 @@ DataStoreManager ──envuelve──> SessionRepositoryImpl : SessionRepository
 ```
 
 Aún faltan: navegación entre pantallas, catálogo con búsqueda y filtros,
-favoritos con "Deshacer", cuenta y perfil, y la URL base real del backend.
+favoritos con "Deshacer", cuenta y perfil.
+
+## Conectar el backend local
+
+La URL base se configura en `local.properties` (archivo ignorado por Git) y Gradle
+la inyecta en `BuildConfig.API_BASE_URL`; no se escribe en el código.
+
+```properties
+# Emulador de Android Studio (10.0.2.2 = PC anfitriona)
+API_BASE_URL=http://10.0.2.2:8000/api/
+
+# Celular físico por USB (requiere adb reverse)
+#API_BASE_URL=http://localhost:8000/api/
+```
+
+Para un celular físico, antes de abrir la app:
+
+```powershell
+adb reverse tcp:8000 tcp:8000
+```
+
+Comprueba que el servidor responde desde la PC:
+
+```powershell
+Invoke-WebRequest http://localhost:8000/api/events -UseBasicParsing
+```
+
+La app usa HTTP local, por eso el manifiesto declara `usesCleartextTraffic="true"`.
+Si el servidor está apagado, la pantalla muestra el estado de error con "Reintentar".
 
 ## Flujo a completar al implementar una funcionalidad
 
@@ -87,11 +116,11 @@ Trabaja con la estructura que ya existe y añade piezas solo cuando las necesite
 4. El resultado actualiza el estado de pantalla: carga, contenido o error.
 5. La UI presenta el resultado; la navegación se decide en la capa de aplicación/presentación, no dentro de Retrofit ni del DAO.
 
-Esta separación es la dirección para desarrollar el proyecto; no significa que las capas mencionadas ya estén creadas. No hace falta dividir `:app` en varios módulos Gradle para seguir este flujo.
+Esta separación es la dirección para desarrollar el proyecto. No hace falta dividir `:app` en varios módulos Gradle para seguir este flujo.
 
 ## Reglas requeridas para errores HTTP
 
-Estas reglas son requisitos para cuando se conecte el flujo de API con sesión y pantallas; no están implementadas todavía en la actividad actual.
+`ApiErrorMapper` ya clasifica los errores; la navegación y los mensajes por pantalla se conectan al implementar cada módulo.
 
 ### HTTP 401 — sesión vencida o no autorizada
 
@@ -120,7 +149,7 @@ La capa de datos debe comunicar el error de sesión a presentación/aplicación.
 
 ## Tecnologías configuradas
 
-Kotlin, Android, Jetpack Compose/Material 3, Retrofit/Gson, OkHttp, DataStore, Room, Navigation Compose y Hilt están declarados en la configuración de `:app`. La presencia de una dependencia no implica que su flujo esté integrado en la aplicación.
+Kotlin, Android, Jetpack Compose/Material 3, Retrofit/Gson, OkHttp, DataStore, Room, Navigation Compose y Hilt están integrados en el flujo actual: el mapa observa la caché de Room, la descarga pasa por Retrofit/OkHttp con el token de DataStore y las dependencias se resuelven con Hilt.
 
 ## Compilar y probar
 

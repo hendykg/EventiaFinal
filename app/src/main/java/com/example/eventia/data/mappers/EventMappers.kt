@@ -9,20 +9,26 @@ import com.example.eventia.domain.model.Event
 import com.example.eventia.domain.model.Venue
 
 // DTO de red -> modelo de dominio
-fun EventResponse.toDomain(isFavorite: Boolean = false): Event = Event(
-    id = id,
-    title = title,
-    summary = summary,
-    description = description,
-    startsAt = startsAt,
-    category = category.toDomain(),
-    imageUrl = imageUrl,
-    venue = venue.toDomain(),
-    capacity = capacity,
-    availableSpots = availableSpots,
-    isAttending = isAttending,
-    isFavorite = isFavorite
-)
+fun EventResponse.toDomain(isFavorite: Boolean = false): Event {
+    // Algunas respuestas traen lat/lng en el evento; se usan como respaldo del lugar (RF-07)
+    val lugar = venue.toDomain().let { v ->
+        v.copy(lat = v.lat ?: lat, lng = v.lng ?: lng)
+    }
+    return Event(
+        id = id,
+        title = title,
+        summary = summary,
+        description = description,
+        startsAt = startsAt,
+        category = category.toDomain(),
+        imageUrl = imageUrl,
+        venue = lugar,
+        capacity = capacity,
+        availableSpots = availableSpots,
+        isAttending = isAttending,
+        isFavorite = isFavorite
+    )
+}
 
 fun CategoryResponse.toDomain(): Category = Category(id = id, name = name)
 
@@ -52,8 +58,8 @@ fun EventResponse.toEntity(
     venueId = venue.id,
     venueName = venue.name,
     venueAddress = venue.address,
-    venueLat = venue.lat,
-    venueLng = venue.lng,
+    venueLat = venue.lat ?: lat,
+    venueLng = venue.lng ?: lng,
     capacity = capacity,
     availableSpots = availableSpots,
     isAttending = isAttending,

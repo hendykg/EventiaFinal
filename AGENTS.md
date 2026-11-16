@@ -33,6 +33,7 @@ Qué se realiza con el flujo, en orden. El agente modifica el código directamen
 | 0 | Infraestructura que compila (Gradle, Room, Hilt base, Manifest) | — | ✅ Commit `235f632` |
 | 1 | Capa de datos mínima: dominio, mappers, repositorios, DI, interceptor | Técnica | ✅ |
 | E-base | Inyección de Google Maps + pantalla del mapa | RF-07, RF-08 | ✅ |
+| E-base.1 | Conexión al backend real (URL configurable, HTTP local, fix de Room en runtime) | Técnica | ✅ |
 | 2 | Navegación Compose + barra inferior de 4 destinos | UX | ⏳ Pendiente |
 | 3 | Módulo A · Catálogo | RF-01, 02, 03, 06 | ⏳ Pendiente |
 | 4 | Módulo B · Lugares | RF-13 | ⏳ Pendiente |
@@ -52,12 +53,19 @@ Qué se realiza con el flujo, en orden. El agente modifica el código directamen
 - Modelos de dominio (`Category`, `Venue`, `Event`, `User`) y `AppError` (401 → SessionExpired, 409 → NoAvailability, 404, red, 5xx).
 - Mappers DTO ↔ dominio ↔ entidad Room; la UI nunca ve DTO.
 - Interfaces de repositorio en `domain/repository`; implementaciones en `data/repository` con Hilt (`RepositoryModule` con bindings).
-- `AuthInterceptor` centraliza el token Bearer desde DataStore; `EventiaApi` quedó sin `@Header` dispersos; `RetrofitClient` fue reemplazado por `NetworkModule`.
+- `AuthInterceptor` centraliza el token Bearer desde DataStore; `EventiaApi` quedó sin `@Header` dispersos.
+- `RetrofitRepository` es la única fuente de Retrofit (patrón del curso, `by lazy`); `NetworkModule` le instala el `OkHttpClient` de Hilt. La URL se lee de `local.properties` (`API_BASE_URL`) → `BuildConfig` y por defecto apunta a `http://10.0.2.2:8000/api/`.
+- **Corrección de runtime**: faltaba `ksp(libs.androidx.room3.compiler)`, por lo que el APK compilaba pero crasheaba al abrir con `ClassNotFoundException: EventiaDatabase_Impl`. Agregado y verificado en dispositivo.
+- **HTTP local**: `usesCleartextTraffic="true"` para `10.0.2.2`/`localhost`; `<queries>` con esquema `geo` para RF-09.
+- Contrato Postman alineado: IDs numéricos; `POST`/`DELETE attendance` devuelven el evento actualizado (201/200); errores 422 con `fields`; coordenadas aceptadas en el lugar o en el evento.
 - **Inyección de Google Maps**: la clave se lee de `local.properties` (`MAPS_API_KEY`) vía `manifestPlaceholders` en `app/build.gradle.kts` y llega al Manifest como `${MAPS_API_KEY}`; la clave nunca se sube a Git.
 - `MapViewModel` con `StateFlow<MapUiState>` (carga/contenido/vacío/error) y `MapScreen` con `GoogleMap`: marcadores solo para eventos con coordenadas válidas (RF-07) y hoja inferior con resumen al seleccionar (RF-08).
 - Tests unitarios de mappers y de clasificación de errores HTTP.
 
-### Pendientes que bloquean ver en runtime
+### Pendientes que bloquean ver eventos reales
 
-1. **MAPS_API_KEY real** en `local.properties`: sin ella el mapa renderiza vacío (gris). Se crea en Google Cloud Console → "Maps SDK for Android".
-2. **URL base del backend** (`EventiaApi.BASE_URL` sigue como placeholder): sin ella no hay eventos y el mapa queda sin marcadores.
+1. **Levantar el backend** en el puerto 8000 (`/api/`). En este equipo no está el proyecto del servidor; hay que arrancarlo desde su carpeta o usar la URL pública de la plataforma.
+2. **Elegir `API_BASE_URL` según el dispositivo** en `local.properties`:
+   - Emulador: `http://10.0.2.2:8000/api/` (valor por defecto).
+   - Celular físico por USB: `http://localhost:8000/api/` + `adb reverse tcp:8000 tcp:8000`.
+3. **MAPS_API_KEY real**: sin ella el mapa se ve gris aunque lleguen los eventos (se crea en Google Cloud Console → "Maps SDK for Android").

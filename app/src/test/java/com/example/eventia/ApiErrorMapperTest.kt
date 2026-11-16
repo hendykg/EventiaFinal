@@ -31,6 +31,11 @@ class ApiErrorMapperTest {
     }
 
     @Test
+    fun `422 se clasifica como error de validacion`() {
+        assertTrue(httpError(422).toAppError() is AppError.Validation)
+    }
+
+    @Test
     fun `500 se clasifica como error de servidor`() {
         assertTrue(httpError(500).toAppError() is AppError.Server)
     }

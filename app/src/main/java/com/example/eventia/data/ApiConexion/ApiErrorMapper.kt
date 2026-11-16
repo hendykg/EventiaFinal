@@ -14,6 +14,7 @@ fun Throwable.toAppError(): AppError = when (this) {
         401 -> AppError.SessionExpired
         404 -> AppError.NotFound
         409 -> AppError.NoAvailability
+        422 -> AppError.Validation
         in 500..599 -> AppError.Server(code())
         else -> AppError.Http(code())
     }

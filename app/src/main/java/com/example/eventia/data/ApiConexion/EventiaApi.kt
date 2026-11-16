@@ -1,6 +1,5 @@
 package com.example.eventia.data.ApiConexion
 
-import retrofit2.Response
 import retrofit2.http.*
 
 interface EventiaApi {
@@ -40,19 +39,15 @@ interface EventiaApi {
 
     // INSCRIPCIONES / ASISTENCIA
     // El encabezado Authorization: Bearer lo agrega AuthInterceptor de forma centralizada.
+    // El servidor responde 201/200 con el evento actualizado (incluye isAttending).
     @POST("events/{id}/attendance")
-    suspend fun attendEvent(@Path("id") id: Int): Response<Unit>
+    suspend fun attendEvent(@Path("id") id: Int): EventResponse
 
     @DELETE("events/{id}/attendance")
-    suspend fun cancelAttendance(@Path("id") id: Int): Response<Unit>
+    suspend fun cancelAttendance(@Path("id") id: Int): EventResponse
 
     @GET("me/attendances")
     suspend fun getMyAttendances(): List<EventResponse>
-
-    companion object {
-        // TODO: reemplazar por la URL oficial que indique la plataforma de la asignatura
-        const val BASE_URL = "https://tu-backend-eventia.com/"
-    }
 }
 
 
@@ -96,7 +91,8 @@ data class VenueResponse(
     val address: String?,
     val imageUrl: String?,
     val lat: Double?,
-    val lng: Double?
+    val lng: Double?,
+    val upcomingEventsCount: Int? = null
 )
 
 // Evento (Catálogo y Detalle)
@@ -111,5 +107,8 @@ data class EventResponse(
     val venue: VenueResponse,
     val capacity: Int,
     val availableSpots: Int,
+    // Algunas respuestas traen las coordenadas en el evento y no en el lugar.
+    val lat: Double? = null,
+    val lng: Double? = null,
     val isAttending: Boolean? = null // Incluido si hay sesión en el detalle (RF-12)
 )
