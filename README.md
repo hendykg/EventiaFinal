@@ -16,7 +16,7 @@ app/src/main/java/com/example/eventia/
 ├── data/
 │   ├── ApiConexion/
 │   │   ├── EventiaApi.kt               (endpoints y DTO)
-│   │   ├── RetrofitRepository.kt       (única instancia de Retrofit; BASE_URL desde local.properties)
+│   │   ├── RetrofitClient.kt           (única instancia de Retrofit; BASE_URL desde local.properties)
 │   │   ├── AuthInterceptor.kt          (token Bearer centralizado)
 │   │   └── ApiErrorMapper.kt           (clasificación 401/404/409/422/5xx/red)
 │   ├── mappers/                        (DTO ↔ dominio ↔ entidad Room)
@@ -38,7 +38,7 @@ También existen recursos Android en `app/src/main/res`, el manifiesto en `app/s
 
 - **`MainActivity.kt`** inicia Compose, aplica `EventiaTheme` y muestra el mapa de eventos con su ViewModel de Hilt.
 - **`data/ApiConexion/EventiaApi.kt`** declara las operaciones Retrofit para registro, inicio de sesión, perfil, categorías, eventos, lugares y asistencias. En el mismo archivo están sus modelos de solicitud/respuesta (DTO).
-- **`data/ApiConexion/RetrofitRepository.kt`** es la única fuente de `Retrofit` (patrón del curso, `by lazy`). La URL base se configura en `local.properties` (`API_BASE_URL`); `NetworkModule` le instala el `OkHttpClient` de Hilt con el token.
+- **`data/ApiConexion/RetrofitClient.kt`** es la única fuente de `Retrofit` (patrón del curso, `by lazy`). La URL base se configura en `local.properties` (`API_BASE_URL`); `NetworkModule` le instala el `OkHttpClient` de Hilt con el token.
 - **`data/DataStoreManager.kt`** ofrece funciones para guardar el token y datos del usuario, observar el token y borrar las preferencias de sesión.
 - **`data/daos/EventDao.kt`** declara consultas Room para catálogo, favoritos e inserción de eventos.
 - **`data/entities/`** contiene `EventEntity` y `VenueEntity` (caché y favoritos).

@@ -7,20 +7,19 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 /**
  * Única fuente de Retrofit de la aplicación (patrón del curso).
- * La instancia y el servicio se crean una sola vez (by lazy) y se reutilizan.
+ * La instancia y el servicio se crean una sola vez (by lazy).
  *
  * [installClient] lo llama NetworkModule para que Retrofit use el OkHttpClient
  * de Hilt, que agrega Authorization: Bearer mediante [AuthInterceptor].
+ * Sin ese cliente, las llamadas con sesión responderían 401.
  */
-object RetrofitRepository {
+object RetrofitClient {
 
     /**
-     * URL base de la API, configurada en local.properties (API_BASE_URL):
-     * - Emulador de Android Studio: "http://10.0.2.2:8000/api/" (por defecto)
-     *   (en el emulador, "localhost" es el emulador; 10.0.2.2 apunta a la PC).
-     * - Celular físico por USB: "http://localhost:8000/api/"
-     *   (ejecutando antes `adb reverse tcp:8000 tcp:8000`).
-     * - Servidor en la nube: la URL pública terminada en "/api/".
+     * URL base configurada en local.properties (API_BASE_URL):
+     * - Emulador: "http://10.0.2.2:8000/api/"
+     * - Celular físico por USB: "http://localhost:8000/api/" + adb reverse
+     * - Servidor en la nube: la URL pública terminada en "/api/"
      */
     val BASE_URL: String = BuildConfig.API_BASE_URL
 
@@ -40,15 +39,10 @@ object RetrofitRepository {
         retrofit.create(EventiaApi::class.java)
     }
 
-    /**
-     * Instala el cliente de Hilt antes del primer acceso a [api].
-     * Se conserva el primero instalado para no crear varias conexiones.
-     */
+    /** Instala el cliente de Hilt (token + logging) antes del primer acceso a [api]. */
     fun installClient(client: OkHttpClient) {
         if (okHttpClient == null) {
             okHttpClient = client
         }
     }
-
-    fun getInstance(): Retrofit = retrofit
 }

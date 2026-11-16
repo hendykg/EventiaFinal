@@ -54,7 +54,7 @@ Qué se realiza con el flujo, en orden. El agente modifica el código directamen
 - Mappers DTO ↔ dominio ↔ entidad Room; la UI nunca ve DTO.
 - Interfaces de repositorio en `domain/repository`; implementaciones en `data/repository` con Hilt (`RepositoryModule` con bindings).
 - `AuthInterceptor` centraliza el token Bearer desde DataStore; `EventiaApi` quedó sin `@Header` dispersos.
-- `RetrofitRepository` es la única fuente de Retrofit (patrón del curso, `by lazy`); `NetworkModule` le instala el `OkHttpClient` de Hilt. La URL se lee de `local.properties` (`API_BASE_URL`) → `BuildConfig` y por defecto apunta a `http://10.0.2.2:8000/api/`.
+- `RetrofitClient` es la única fuente de Retrofit (patrón del curso, `by lazy`); `NetworkModule` le instala el `OkHttpClient` de Hilt. La URL se lee de `local.properties` (`API_BASE_URL`) → `BuildConfig` y por defecto apunta a `http://10.0.2.2:8000/api/`.
 - **Corrección de runtime**: faltaba `ksp(libs.androidx.room3.compiler)`, por lo que el APK compilaba pero crasheaba al abrir con `ClassNotFoundException: EventiaDatabase_Impl`. Agregado y verificado en dispositivo.
 - **HTTP local**: `usesCleartextTraffic="true"` para `10.0.2.2`/`localhost`; `<queries>` con esquema `geo` para RF-09.
 - Contrato Postman alineado: IDs numéricos; `POST`/`DELETE attendance` devuelven el evento actualizado (201/200); errores 422 con `fields`; coordenadas aceptadas en el lugar o en el evento.

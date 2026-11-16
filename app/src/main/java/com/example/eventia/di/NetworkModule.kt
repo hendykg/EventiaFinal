@@ -2,7 +2,7 @@ package com.example.eventia.di
 
 import com.example.eventia.data.ApiConexion.AuthInterceptor
 import com.example.eventia.data.ApiConexion.EventiaApi
-import com.example.eventia.data.ApiConexion.RetrofitRepository
+import com.example.eventia.data.ApiConexion.RetrofitClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,13 +33,13 @@ object NetworkModule {
             .build()
 
     /**
-     * La instancia de Retrofit la provee RetrofitRepository (patrón del curso);
+     * La instancia de Retrofit la provee RetrofitClient (patrón del curso);
      * aquí solo se instala el cliente autenticado y se expone el servicio.
      */
     @Provides
     @Singleton
     fun provideEventiaApi(okHttpClient: OkHttpClient): EventiaApi {
-        RetrofitRepository.installClient(okHttpClient)
-        return RetrofitRepository.api
+        RetrofitClient.installClient(okHttpClient)
+        return RetrofitClient.api
     }
 }
