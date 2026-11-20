@@ -64,8 +64,9 @@ Qué se realiza con el flujo, en orden. El agente modifica el código directamen
 
 ### Pendientes que bloquean ver eventos reales
 
-1. **Levantar el backend** en el puerto 8000 (`/api/`). En este equipo no está el proyecto del servidor; hay que arrancarlo desde su carpeta o usar la URL pública de la plataforma.
+1. **Backend disponible**: `https://eventia.jmacboy.dev/api/` (activo en `local.properties`). Verificado con `GET /events`: devuelve el catálogo real. El backend local Laravel en el puerto 8000 es opcional; no está en este equipo.
 2. **Elegir `API_BASE_URL` según el dispositivo** en `local.properties`:
-   - Emulador: `http://10.0.2.2:8000/api/` (valor por defecto).
-   - Celular físico por USB: `http://localhost:8000/api/` + `adb reverse tcp:8000 tcp:8000`.
+   - Servidor público (sin `adb reverse`): `https://eventia.jmacboy.dev/api/` (valor activo).
+   - Emulador con backend local: `http://10.0.2.2:8000/api/` (valor por defecto en `build.gradle.kts`).
+   - Celular físico por USB con backend local: `http://localhost:8000/api/` + `adb reverse tcp:8000 tcp:8000`.
 3. **MAPS_API_KEY real**: sin ella el mapa se ve gris aunque lleguen los eventos (se crea en Google Cloud Console → "Maps SDK for Android").

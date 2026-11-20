@@ -78,20 +78,26 @@ DataStoreManager ──envuelve──> SessionRepositoryImpl : SessionRepository
 Aún faltan: navegación entre pantallas, catálogo con búsqueda y filtros,
 favoritos con "Deshacer", cuenta y perfil.
 
-## Conectar el backend local
+## Conectar el backend
 
 La URL base se configura en `local.properties` (archivo ignorado por Git) y Gradle
 la inyecta en `BuildConfig.API_BASE_URL`; no se escribe en el código.
 
 ```properties
-# Emulador de Android Studio (10.0.2.2 = PC anfitriona)
-API_BASE_URL=http://10.0.2.2:8000/api/
+# Servidor público (activo actualmente)
+API_BASE_URL=https://eventia.jmacboy.dev/api/
 
-# Celular físico por USB (requiere adb reverse)
+# Emulador de Android Studio con backend local (10.0.2.2 = PC anfitriona)
+#API_BASE_URL=http://10.0.2.2:8000/api/
+
+# Celular físico por USB con backend local (requiere adb reverse)
 #API_BASE_URL=http://localhost:8000/api/
 ```
 
-Para un celular físico, antes de abrir la app:
+Con la URL pública no hace falta `adb reverse` ni levantar Laravel: funciona en
+emulador y en celular físico. Para volver al backend local, descomenta su línea.
+
+Para un celular físico **con backend local**, antes de abrir la app:
 
 ```powershell
 adb reverse tcp:8000 tcp:8000
@@ -103,8 +109,9 @@ Comprueba que el servidor responde desde la PC:
 Invoke-WebRequest http://localhost:8000/api/events -UseBasicParsing
 ```
 
-La app usa HTTP local, por eso el manifiesto declara `usesCleartextTraffic="true"`.
-Si el servidor está apagado, la pantalla muestra el estado de error con "Reintentar".
+La app usa HTTP local cuando apunta al backend local, por eso el manifiesto declara
+`usesCleartextTraffic="true"` (con HTTPS está permitido igual). Si el servidor no
+responde, la pantalla muestra el estado de error con "Reintentar".
 
 ## Flujo a completar al implementar una funcionalidad
 
