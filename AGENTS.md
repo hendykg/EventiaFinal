@@ -34,12 +34,12 @@ Qué se realiza con el flujo, en orden. El agente modifica el código directamen
 | 1 | Capa de datos mínima: dominio, mappers, repositorios, DI, interceptor | Técnica | ✅ |
 | E-base | Inyección de Google Maps + pantalla del mapa | RF-07, RF-08 | ✅ |
 | E-base.1 | Conexión al backend real (URL configurable, HTTP local, fix de Room en runtime) | Técnica | ✅ |
-| 2 | Navegación Compose + barra inferior de 4 destinos | UX | ⏳ Pendiente |
-| 3 | Módulo A · Catálogo | RF-01, 02, 03, 06 | ⏳ Pendiente |
+| 2 | Navegación Compose + barra inferior de 4 destinos | UX | ✅ |
+| 3 | Módulo A · Catálogo | RF-01, 02, 03, 06 | ✅ |
 | 4 | Módulo B · Lugares | RF-13 | ⏳ Pendiente |
-| 5 | Módulo C · Favoritos y sin conexión | RF-04, 05, 14 | ⏳ Pendiente |
-| 6 | Módulo D · Cuenta e inscripciones | RF-11, 12 | ⏳ Pendiente |
-| 7 | Módulo E completo (filtro por categoría, RF-09, RF-10) | RF-07 a 10 | ⏳ Pendiente |
+| 5 | Módulo C · Favoritos y sin conexión | RF-04, 05, 14 | ✅ |
+| 6 | Módulo D · Cuenta e inscripciones | RF-11, 12 | ✅ |
+| 7 | Módulo E completo (filtro por categoría, RF-09, RF-10) | RF-07 a 10 | 🔶 Filtro por categoría listo; RF-09/10 pendientes |
 | 8 | README final, escenarios verificados, tag `v1.0` | Entregables | ⏳ Pendiente |
 
 ### Fase 0 — Infraestructura que compila
@@ -61,6 +61,17 @@ Qué se realiza con el flujo, en orden. El agente modifica el código directamen
 - **Inyección de Google Maps**: la clave se lee de `local.properties` (`MAPS_API_KEY`) vía `manifestPlaceholders` en `app/build.gradle.kts` y llega al Manifest como `${MAPS_API_KEY}`; la clave nunca se sube a Git.
 - `MapViewModel` con `StateFlow<MapUiState>` (carga/contenido/vacío/error) y `MapScreen` con `GoogleMap`: marcadores solo para eventos con coordenadas válidas (RF-07) y hoja inferior con resumen al seleccionar (RF-08).
 - Tests unitarios de mappers y de clasificación de errores HTTP.
+
+### Fase 2–6 — Navegación, catálogo, favoritos y cuenta
+
+- `MainActivity` usa `Scaffold` + `NavigationBar` y un `enum Pantalla` (Catálogo, Mapa, Favoritos, Cuenta), sin `NavController`, para que el flujo sea fácil de leer.
+- **Catálogo** (`ui/catalogo/`): `CatalogoViewModel` descarga `GET /events` y guarda la caché en Room; la búsqueda tiene debounce explícito (`Job.cancel()` + `delay(300)`) y llama `GET /events?q=...&category=...`. Los chips de categoría salen de `GET /categories`.
+- **Inscripción**: `EventRepository.attendEvent` / `cancelAttendance` / `getMyAttendances`; `EventDao.updateAttendingStatus` refleja el estado en la caché. La UI muestra "Inscripción confirmada" / "Inscripción cancelada" y los cupos cambian.
+- **Favoritos** (`ui/favoritos/`): `observeFavorites()` es un `Flow` de Room; la estrella solo escribe en Room y la pestaña se actualiza sola.
+- **Cuenta** (`ui/cuenta/`): `AuthRepository` (login/registro) guarda la sesión con `SessionRepository`; se separó de `SessionRepository` para evitar el ciclo de Hilt `AuthInterceptor → SessionRepository`.
+- **Componentes**: `EventoRow` (tarjeta reutilizable con favorito e inscripción) y `Estados` (carga, vacío, error).
+- **Errores**: 401 limpia la sesión y avisa; 409 informa falta de cupos; 422 validación; el resto se conserva como fallo explícito.
+- **Verificado en emulador**: catálogo con eventos reales, búsqueda "taller", filtro "Arte", favorito persistido, registro de cuenta, inscripción (cupos 90→89) y cancelación (89→90).
 
 ### Pendientes que bloquean ver eventos reales
 

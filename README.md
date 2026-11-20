@@ -1,18 +1,18 @@
 # Eventia
 
-Eventia es una aplicación Android desarrollada con Kotlin y Jetpack Compose para consultar eventos y lugares, e inscribirse a eventos. El proyecto está en desarrollo; este documento describe lo que existe hoy y distingue ese estado del flujo que se debe completar.
+Eventia es una aplicación Android desarrollada con Kotlin y Jetpack Compose para consultar eventos y lugares, e inscribirse a eventos. La app consume la API pública de Eventia y funciona en emulador y en celular físico.
 
 ## Estructura actual del proyecto
 
-La aplicación tiene un único módulo Gradle, `:app`. Los paquetes de Kotlin existentes son:
+La aplicación tiene un único módulo Gradle, `:app`. Los paquetes de Kotlin son:
 
 ```text
 app/src/main/java/com/example/eventia/
-├── MainActivity.kt                     (host de la pantalla del mapa)
+├── MainActivity.kt                     (barra inferior y navegación entre 4 pantallas)
 ├── EventiaApplication.kt               (@HiltAndroidApp)
 ├── domain/
 │   ├── model/                          (Category, Venue, Event, User, AppError)
-│   └── repository/                      (interfaces: SessionRepository, EventRepository)
+│   └── repository/                     (interfaces: SessionRepository, EventRepository, AuthRepository)
 ├── data/
 │   ├── ApiConexion/
 │   │   ├── EventiaApi.kt               (endpoints y DTO)
@@ -20,7 +20,7 @@ app/src/main/java/com/example/eventia/
 │   │   ├── AuthInterceptor.kt          (token Bearer centralizado)
 │   │   └── ApiErrorMapper.kt           (clasificación 401/404/409/422/5xx/red)
 │   ├── mappers/                        (DTO ↔ dominio ↔ entidad Room)
-│   ├── repository/                     (SessionRepositoryImpl, EventRepositoryImpl)
+│   ├── repository/                     (SessionRepositoryImpl, EventRepositoryImpl, AuthRepositoryImpl)
 │   ├── daos/                           (EventDao, VenueDao)
 │   ├── entities/                       (EventEntity, VenueEntity)
 │   ├── DataStoreManager.kt
@@ -28,42 +28,64 @@ app/src/main/java/com/example/eventia/
 ├── di/                                 (DatabaseModule, NetworkModule, RepositoryModule)
 ├── util/Fechas.kt                      (fechas ISO a zona horaria local)
 └── ui/
+    ├── catalogo/                       (CatalogoViewModel, CatalogoScreen)
+    ├── favoritos/                      (FavoritosViewModel, FavoritosScreen)
+    ├── cuenta/                         (CuentaViewModel, CuentaScreen)
+    ├── componentes/                    (EventoRow, Estados)
     ├── mapa/                           (MapViewModel, MapScreen)
     └── theme/
 ```
 
-También existen recursos Android en `app/src/main/res`, el manifiesto en `app/src/main/AndroidManifest.xml` y las pruebas de ejemplo en `app/src/test` y `app/src/androidTest`.
+También existen recursos Android en `app/src/main/res`, el manifiesto en `app/src/main/AndroidManifest.xml` y las pruebas en `app/src/test` y `app/src/androidTest`.
 
 ### Responsabilidad del código existente
 
-- **`MainActivity.kt`** inicia Compose, aplica `EventiaTheme` y muestra el mapa de eventos con su ViewModel de Hilt.
-- **`data/ApiConexion/EventiaApi.kt`** declara las operaciones Retrofit para registro, inicio de sesión, perfil, categorías, eventos, lugares y asistencias. En el mismo archivo están sus modelos de solicitud/respuesta (DTO).
+- **`MainActivity.kt`** inicia Compose, aplica `EventiaTheme`, muestra un `Scaffold` con barra inferior y cambia entre cuatro pantallas con un `enum Pantalla` (sin `NavController`).
+- **`ui/catalogo/`** muestra el catálogo, la búsqueda por nombre con debounce y el filtro por categoría; también permite marcar favoritos e inscribirse/cancelar.
+- **`ui/favoritos/`** observa el `Flow` de favoritos de Room, así que se actualiza solo cuando cambia el catálogo.
+- **`ui/cuenta/`** permite iniciar sesión, crear una cuenta, cerrar sesión y ver "Mis inscripciones".
+- **`ui/mapa/`** dibuja marcadores de los eventos con coordenadas y abre una hoja inferior al tocar uno.
+- **`data/ApiConexion/EventiaApi.kt`** declara las operaciones Retrofit para registro, inicio de sesión, perfil, categorías, eventos, lugares y asistencias. En el mismo archivo están sus DTO.
 - **`data/ApiConexion/RetrofitClient.kt`** es la única fuente de `Retrofit` (patrón del curso, `by lazy`). La URL base se configura en `local.properties` (`API_BASE_URL`); `NetworkModule` le instala el `OkHttpClient` de Hilt con el token.
-- **`data/DataStoreManager.kt`** ofrece funciones para guardar el token y datos del usuario, observar el token y borrar las preferencias de sesión.
-- **`data/daos/EventDao.kt`** declara consultas Room para catálogo, favoritos e inserción de eventos.
+- **`data/DataStoreManager.kt`** guarda el token y los datos del usuario, y los expone como `Flow`.
+- **`data/daos/EventDao.kt`** declara consultas Room para catálogo, favoritos, inscripción y borrado de caché.
 - **`data/entities/`** contiene `EventEntity` y `VenueEntity` (caché y favoritos).
 - **`ui/theme/`** contiene la configuración visual de Compose.
 
 ## Flujo implementado hoy
 
-El flujo de interfaz que está conectado es:
+La navegación y el flujo de datos son:
 
 ```text
-Android inicia MainActivity (@AndroidEntryPoint)
+MainActivity (@AndroidEntryPoint)
         ↓
-EventiaTheme + Scaffold
+Scaffold + NavigationBar (Catálogo · Mapa · Favoritos · Cuenta)
         ↓
-MapViewModel (@HiltViewModel, StateFlow<MapUiState>)
+Pantalla Compose  →  ViewModel (@HiltViewModel, StateFlow)
         ↓
-EventRepository (interfaz) → EventRepositoryImpl
+Repositorio (interfaz) → implementación
         ↓
-Retrofit EventiaApi  →  caché Room  →  marcadores del mapa
+Retrofit EventiaApi  /  Room  /  DataStore
 ```
 
-`MapUiState` cubre carga, contenido, vacío y error. La búsqueda de eventos usa
-`GET /events` con `q` y `category`; los favoritos y la caché viven en Room.
+Cada pantalla tiene su ViewModel:
 
-Las piezas de datos quedaron conectadas por Hilt:
+| Pantalla | ViewModel | Qué hace |
+|----------|-----------|----------|
+| Catálogo | `CatalogoViewModel` | `refreshCatalog()`, `searchEvents()`, categorías, favoritos, inscribirse y cancelar |
+| Mapa | `MapViewModel` | carga eventos con coordenadas desde la API/caché y expone `MapUiState` |
+| Favoritos | `FavoritosViewModel` | `observeFavorites()` (Flow de Room); quitar favorito |
+| Cuenta | `CuentaViewModel` | login, registro, sesión, cierre y `getMyAttendances()` |
+
+Detalles del flujo:
+
+- **Catálogo**: al abrir descarga `GET /events` y guarda la caché en Room. La búsqueda espera 300 ms después de la última tecla (`Job.cancel()` + `delay(300)`) y llama `GET /events?q=...&category=...`.
+- **Favoritos**: la estrella solo actualiza Room (`isFavorite`), sin red. La pestaña Favoritos observa esa tabla y se refresca sola.
+- **Inscripción**: `POST /events/{id}/attend` requiere sesión. Refleja el resultado en Room (`isAttending` y cupos). `DELETE` cancela la inscripción.
+- **Errores**: 401 limpia la sesión (`clearSession`) y avisa; 409 muestra "Ya no quedan cupos"; 422 muestra validación; el resto se muestra con botón "Reintentar" donde aplica.
+- **Mapa**: descarga el catálogo al iniciar y centra la cámara en el primer evento con coordenadas. Sin `MAPS_API_KEY` los marcadores existen pero el mapa se ve gris.
+
+Las piezas de datos están conectadas por Hilt:
 
 ```text
 NetworkModule ──proporciona──> EventiaApi (OkHttp con AuthInterceptor y errores clasificados)
@@ -71,12 +93,13 @@ NetworkModule ──proporciona──> EventiaApi (OkHttp con AuthInterceptor y 
 DatabaseModule ──proporciona──> EventiaDatabase ──> EventDao / VenueDao
 
 RepositoryModule ──enlaza──> EventRepositoryImpl : EventRepository
+                              AuthRepositoryImpl : AuthRepository
 
 DataStoreManager ──envuelve──> SessionRepositoryImpl : SessionRepository (token y sesión)
 ```
 
-Aún faltan: navegación entre pantallas, catálogo con búsqueda y filtros,
-favoritos con "Deshacer", cuenta y perfil.
+`AuthRepository` se separó de `SessionRepository` para evitar un ciclo de Hilt:
+`AuthInterceptor → SessionRepository` y `AuthRepositoryImpl → EventiaApi + SessionRepository`.
 
 ## Conectar el backend
 
@@ -113,7 +136,17 @@ La app usa HTTP local cuando apunta al backend local, por eso el manifiesto decl
 `usesCleartextTraffic="true"` (con HTTPS está permitido igual). Si el servidor no
 responde, la pantalla muestra el estado de error con "Reintentar".
 
-## Flujo a completar al implementar una funcionalidad
+## Mapa (Google Maps)
+
+La clave se lee de `local.properties` (`MAPS_API_KEY`) y llega al manifiesto como
+`${MAPS_API_KEY}`; nunca se sube a Git. Sin clave la app funciona, pero el mapa se
+ve gris (los eventos y marcadores igual cargan). Para habilitarlo:
+
+1. Crea una clave en Google Cloud Console con "Maps SDK for Android" habilitado.
+2. Escribe `MAPS_API_KEY=tu_clave` en `local.properties`.
+3. Recompila e instala la app.
+
+## Flujo a seguir al implementar una funcionalidad
 
 Trabaja con la estructura que ya existe y añade piezas solo cuando las necesite el requisito:
 
@@ -127,28 +160,26 @@ Esta separación es la dirección para desarrollar el proyecto. No hace falta di
 
 ## Reglas requeridas para errores HTTP
 
-`ApiErrorMapper` ya clasifica los errores; la navegación y los mensajes por pantalla se conectan al implementar cada módulo.
+`ApiErrorMapper` clasifica los errores y los ViewModels deciden qué mostrar.
 
 ### HTTP 401 — sesión vencida o no autorizada
 
-- Borrar la sesión local mediante `DataStoreManager.borrarSesion()`.
-- Dirigir al usuario a Login y quitar las pantallas protegidas del historial de navegación.
-- Mantener la aplicación abierta; no finalizar la actividad ni el proceso.
-- Evitar que varios 401 generen navegaciones repetidas.
+- Borrar la sesión local con `SessionRepository.clearSession()`.
+- La app permanece abierta; el usuario puede volver a iniciar sesión desde Cuenta.
+- Evitar que varios 401 generen avisos repetidos.
 
-La capa de datos debe comunicar el error de sesión a presentación/aplicación. No debe navegar por su cuenta ni confundir otros errores con un 401.
+La capa de datos comunica el error a presentación; no navega por su cuenta ni confunde otros errores con un 401.
 
 ### HTTP 409 — evento sin cupos
 
-- Informar al usuario que ya no hay cupos disponibles para el evento.
+- Informar que ya no hay cupos disponibles para el evento.
 - No tratar la inscripción como exitosa ni marcar al usuario como asistente.
-- Mantener la aplicación abierta y conservar el contexto de la pantalla.
-- Representar el conflicto separadamente de errores de conexión u otros errores del servidor.
+- Mantener la app abierta y conservar el contexto de la pantalla.
 
 ## Convenciones para los próximos cambios
 
 - Conserva la estructura actual y sigue los nombres y paquetes existentes al extender una funcionalidad.
-- Mantén la UI, el acceso a red y el almacenamiento local separados; introduce repositorios/ViewModels cuando se conecten esas capas.
+- Mantén la UI, el acceso a red y el almacenamiento local separados.
 - Representa los errores explícitamente. No ocultes excepciones ni conviertas fallos en resultados exitosos.
 - Respeta la cancelación de corrutinas.
 - Añade pruebas para los comportamientos implementados y sus casos de error. No describas como implementada una función que solo esté declarada o planificada.
@@ -156,7 +187,7 @@ La capa de datos debe comunicar el error de sesión a presentación/aplicación.
 
 ## Tecnologías configuradas
 
-Kotlin, Android, Jetpack Compose/Material 3, Retrofit/Gson, OkHttp, DataStore, Room, Navigation Compose y Hilt están integrados en el flujo actual: el mapa observa la caché de Room, la descarga pasa por Retrofit/OkHttp con el token de DataStore y las dependencias se resuelven con Hilt.
+Kotlin, Android, Jetpack Compose/Material 3, Retrofit/Gson, OkHttp, DataStore, Room, Google Maps Compose y Hilt. La UI observa estados de ViewModel, la descarga pasa por Retrofit/OkHttp con el token de DataStore, la caché y los favoritos viven en Room y las dependencias se resuelven con Hilt.
 
 ## Compilar y probar
 

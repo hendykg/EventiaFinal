@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.eventia.domain.model.Event
 import com.example.eventia.util.Fechas
 import com.google.android.gms.maps.model.CameraPosition
@@ -44,12 +45,13 @@ private val POSICION_INICIAL = LatLng(-17.3935, -66.1571)
  */
 @Composable
 fun MapScreen(
-    state: MapUiState,
-    onRetry: () -> Unit,
+    viewModel: MapViewModel,
     onEventClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    when (state) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    when (val estado = state) {
         is MapUiState.Loading -> Box(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -65,11 +67,11 @@ fun MapScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = state.error.message ?: "Ocurrió un error",
+                text = estado.error.message ?: "Ocurrió un error",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onRetry) {
+            Button(onClick = viewModel::refresh) {
                 Text(text = "Reintentar")
             }
         }
@@ -81,7 +83,7 @@ fun MapScreen(
         )
 
         is MapUiState.Content -> EventMap(
-            events = state.events,
+            events = estado.events,
             onEventClick = onEventClick,
             modifier = modifier
         )

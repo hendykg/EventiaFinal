@@ -1,5 +1,6 @@
 package com.example.eventia.domain.repository
 
+import com.example.eventia.domain.model.Category
 import com.example.eventia.domain.model.Event
 import kotlinx.coroutines.flow.Flow
 
@@ -28,4 +29,16 @@ interface EventRepository {
 
     /** Marca o desmarca favorito; solo Room, no requiere conexión (RF-04, RF-05). */
     suspend fun setFavorite(eventId: Int, isFavorite: Boolean)
+
+    /** Categorías disponibles para el filtro del catálogo. */
+    suspend fun getCategories(): List<Category>
+
+    /** Inscribirse al evento (requiere token; 409 = sin cupos). */
+    suspend fun attendEvent(eventId: Int): Event
+
+    /** Cancelar la inscripción al evento. */
+    suspend fun cancelAttendance(eventId: Int): Event
+
+    /** Inscripciones del usuario autenticado. */
+    suspend fun getMyAttendances(): List<Event>
 }

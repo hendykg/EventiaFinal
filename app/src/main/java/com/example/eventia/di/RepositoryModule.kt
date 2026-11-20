@@ -1,7 +1,9 @@
 package com.example.eventia.di
 
+import com.example.eventia.data.repository.AuthRepositoryImpl
 import com.example.eventia.data.repository.EventRepositoryImpl
 import com.example.eventia.data.repository.SessionRepositoryImpl
+import com.example.eventia.domain.repository.AuthRepository
 import com.example.eventia.domain.repository.EventRepository
 import com.example.eventia.domain.repository.SessionRepository
 import dagger.Binds
@@ -21,4 +23,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindEventRepository(impl: EventRepositoryImpl): EventRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
 }

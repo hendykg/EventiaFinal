@@ -30,6 +30,10 @@ interface EventDao {
     @Query("UPDATE events SET isFavorite = :isFavorite WHERE id = :eventId")
     suspend fun updateFavoriteStatus(eventId: Int, isFavorite: Boolean)
 
+    // Refleja el resultado de inscribirse/cancelar en la caché local (RF-12)
+    @Query("UPDATE events SET isAttending = :isAttending WHERE id = :eventId")
+    suspend fun updateAttendingStatus(eventId: Int, isAttending: Boolean)
+
     // Invalidar la caché anterior conservando favoritos (RF-14)
     @Query("UPDATE events SET isCached = 0 WHERE isFavorite = 0")
     suspend fun invalidateCachedCatalog()
